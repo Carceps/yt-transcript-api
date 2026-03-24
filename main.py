@@ -61,11 +61,27 @@ def health():
 
 COOKIES_FILE = "cookies.txt" if os.path.exists("cookies.txt") else None
 
+PROXY_USERNAME = "ltymrejf"
+PROXY_PASSWORD = "k81u2as19zyf"
+PROXY_HOST = "31.59.20.176"
+PROXY_PORT = "6754"
+
+PROXIES = {
+    "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
+}
+
 @app.post("/transcript")
 def get_transcript(request: TranscriptRequest, api_key: str = Depends(verify_api_key)):
     video_id = extract_video_id(request.url)
     try:
-        ytt_api = YouTubeTranscriptApi(cookie_path=COOKIES_FILE) if COOKIES_FILE else YouTubeTranscriptApi()
+        ytt_api = YouTubeTranscriptApi(proxies=PROXIES)
+```
+
+Save. Then push:
+```
+git add .
+git commit -m "add proxy support"
+git push
         fetched = ytt_api.fetch(video_id, languages=[request.language, 'en', 'en-US', 'en-GB'])
         snippets = fetched.snippets
         full_text = " ".join([s.text for s in snippets])
