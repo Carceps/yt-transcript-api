@@ -6,6 +6,7 @@ from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFoun
 from config import VALID_API_KEYS, FREE_TRIAL_KEY, FREE_TIER_LIMIT
 import re
 import time
+import os
 from collections import defaultdict
 
 app = FastAPI(
@@ -58,11 +59,13 @@ def verify_api_key(x_api_key: str = Header(...)):
 def health():
     return {"status": "ok", "message": "YT Transcript API is running"}
 
+COOKIES_FILE = "cookies.txt" if os.path.exists("cookies.txt") else None
+
 @app.post("/transcript")
 def get_transcript(request: TranscriptRequest, api_key: str = Depends(verify_api_key)):
     video_id = extract_video_id(request.url)
     try:
-        ytt_api = YouTubeTranscriptApi()
+        ytt_api = YouTubeTranscriptApi(cookie_path=COOKIES_FILE) if COOKIES_FILE else YouTubeTranscriptApi()
         fetched = ytt_api.fetch(video_id, languages=[request.language, 'en', 'en-US', 'en-GB'])
         snippets = fetched.snippets
         full_text = " ".join([s.text for s in snippets])
@@ -89,7 +92,7 @@ def get_transcript(request: TranscriptRequest, api_key: str = Depends(verify_api
 def get_available_languages(video_url: str, api_key: str = Depends(verify_api_key)):
     video_id = extract_video_id(video_url)
     try:
-        ytt_api = YouTubeTranscriptApi()
+        ytt_api = YouTubeTranscriptApi(cookie_path=COOKIES_FILE) if COOKIES_FILE else YouTubeTranscriptApi()
         transcript_list = ytt_api.list(video_id)
         languages = []
         for t in transcript_list:
