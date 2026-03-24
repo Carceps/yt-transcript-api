@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
+from youtube_transcript_api.proxies import GenericProxyConfig
 from config import VALID_API_KEYS, FREE_TRIAL_KEY, FREE_TIER_LIMIT
 import re
 import time
@@ -29,9 +30,10 @@ PROXY_PASSWORD = "k81u2as19zyf"
 PROXY_HOST = "31.59.20.176"
 PROXY_PORT = "6754"
 
-PROXIES = {
-    "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
-}
+PROXY_CONFIG = GenericProxyConfig(
+    http_url=f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+    https_url=f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+)
 
 class TranscriptRequest(BaseModel):
     url: str
@@ -74,7 +76,7 @@ def health():
 def get_transcript(request: TranscriptRequest, api_key: str = Depends(verify_api_key)):
     video_id = extract_video_id(request.url)
     try:
-        ytt_api = YouTubeTranscriptApi(proxies=PROXIES)
+        ytt_api = YouTubeTranscriptApi(proxy_config=PROXY_CONFIG)
         fetched = ytt_api.fetch(video_id, languages=[request.language, 'en', 'en-US', 'en-GB'])
         snippets = fetched.snippets
         full_text = " ".join([s.text for s in snippets])
@@ -101,7 +103,7 @@ def get_transcript(request: TranscriptRequest, api_key: str = Depends(verify_api
 def get_available_languages(video_url: str, api_key: str = Depends(verify_api_key)):
     video_id = extract_video_id(video_url)
     try:
-        ytt_api = YouTubeTranscriptApi(proxies=PROXIES)
+        ytt_api = YouTubeTranscriptApi(proxy_config=PROXY_CONFIG)
         transcript_list = ytt_api.list(video_id)
         languages = []
         for t in transcript_list:
